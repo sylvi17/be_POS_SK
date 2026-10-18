@@ -1,0 +1,260 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Role {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  users           User[]
+  permissionRoles PermissionRole[]
+
+  @@map("role")
+}
+
+model Permission {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  permissionRoles PermissionRole[]
+
+  @@map("permission")
+}
+
+model PermissionRole {
+  permission_id Int
+  role_id       Int
+
+  permission Permission @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+  role       Role       @relation(fields: [role_id], references: [id], onDelete: Cascade)
+
+  @@id([permission_id, role_id])
+  @@map("permission_role")
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  role_id       Int
+  username      String    @unique
+  password      String
+  name          String
+  is_active     Boolean   @default(true)
+  refresh_token String?
+  last_login_at DateTime?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  role Role @relation(fields: [role_id], references: [id])
+
+  @@map("user")
+}
+
+model Vehicele {
+  id           Int    @id @default(autoincrement())
+  name         String
+  type_vehicle String
+  nopol        String @unique
+  type_fuel    String
+
+  created_at DateTime  @default(now())
+  updated_at DateTime?
+
+  user_id         Int
+  ip              String
+  salesKanvasPlan SalesKanvasPlan[]
+
+  @@map("ms_vehicle")
+}
+
+model MarketArea {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+
+  created_at DateTime  @default(now())
+  updated_at DateTime?
+
+  user_id         Int
+  ip              String
+  salesKanvasPlan SalesKanvasPlan[]
+
+  @@map("ms_market_area")
+}
+
+model Product {
+  id                   Int     @id @default(autoincrement())
+  name                 String  @unique
+  code                 String  @unique
+  product_brand_id     Int
+  product_type_id      Int
+  jenang_flavor_id     Int?
+  isian                Int? // isi per tiap kemasan
+  unit_id              Int?
+  sale_report_group_id Int // Jenang, Brownies, Konsinyasi
+  supplier_id          Int
+  weight               Int?
+  is_active            Boolean
+  barcode              String  @unique
+
+  type_price String // FIXED, PERSENTASE
+
+  hpp Decimal? @db.Decimal(12, 2)
+
+  expired_count Int? // pakai expired hari
+
+  created_at DateTime  @default(now())
+  updated_at DateTime?
+
+  user_id Int
+  ip      String
+
+  salesKanvasPlanDetail SalesKanvasPlanDetail[]
+
+  @@index([is_active])
+  @@index([product_brand_id])
+  @@index([product_type_id])
+  @@map("ms_product")
+}
+
+model Employee {
+  id                   Int      @id @default(autoincrement())
+  avatar_file_id       Int?
+  name                 String
+  nip                  String?  @unique
+  pin_fingerprint      String?  @unique
+  contact              String?  @unique
+  address              String?
+  tipe_upah_id         Int?
+  employee_position_id Int
+  employee_job_id      Int
+  employee_contract_id Int
+  devisi_id            Int
+  gender               String // MALE, FEMALE
+  agama                String
+  tgl_lahir            DateTime
+  tgl_masuk            DateTime
+  hari_libur_mingguan  Int?
+  jam_kerja_id         Int?
+  is_active            Boolean  @default(true)
+
+  user_id Int
+  ip      String
+
+  created_at DateTime  @default(now())
+  updated_at DateTime?
+
+  salesKanvasPersonil SalesKanvasPersonil[]
+
+  @@index([is_active])
+  @@index([employee_position_id])
+  @@index([employee_job_id])
+  @@index([employee_contract_id])
+  @@index([tipe_upah_id])
+  @@map("ms_employee")
+}
+
+model KanvasKasbonMaterialType {
+  id         Int       @id @default(autoincrement())
+  name       String    @unique
+  created_at DateTime  @default(now())
+  updated_at DateTime?
+
+  user_id                   Int
+  ip                        String
+  salesKanvasKasbonMaterial SalesKanvasKasbonMaterial[]
+
+  @@map("ms_kanvas_kasbon_material_type")
+}
+
+// ===== PLAN =====
+
+model SalesKanvasPlan {
+  id                 Int       @id @default(autoincrement())
+  invoice            String
+  tgl_invoice        DateTime
+  tgl_pergi_kanvas   DateTime
+  tgl_kembali_kanvas DateTime?
+  market_area_id     Int
+  vehicle_id         Int
+  status             String // DRAFT, DISETUJUI, BATAL, REVISI, LOADING, KOMPLIT (SUDAH TOTALAN)
+  note               String?
+
+  revision     Int       @default(0)
+  revisi_to    String? // invoice sebelumnya
+  cancelled_at DateTime?
+
+  created_at DateTime  @default(now())
+  updated_at DateTime?
+
+  user_id Int
+  ip      String
+
+  vehicle                   Vehicele                    @relation(fields: [vehicle_id], references: [id])
+  salesKanvasPlanDetail     SalesKanvasPlanDetail[]
+  salesKanvasPersonil       SalesKanvasPersonil[]
+  marketArea                MarketArea                  @relation(fields: [market_area_id], references: [id])
+  salesKanvasKasbonMaterial SalesKanvasKasbonMaterial[]
+
+  @@index([invoice])
+  @@map("ts_sales_kanvas_plan")
+}
+
+model SalesKanvasPlanDetail {
+  id                   Int      @id @default(autoincrement())
+  sales_kanvas_plan_id Int
+  product_id           Int
+  qty                  Int
+  created_at           DateTime @default(now())
+
+  salesKanvasPlan SalesKanvasPlan @relation(fields: [sales_kanvas_plan_id], references: [id])
+  product         Product         @relation(fields: [product_id], references: [id])
+
+  @@map("ts_sales_kanvas_plan_detail")
+}
+
+model SalesKanvasPersonil {
+  id                   Int    @id @default(autoincrement())
+  sales_kanvas_plan_id Int
+  employee_id          Int
+  position             String
+
+  created_at DateTime  @default(now())
+  updated_at DateTime?
+
+  user_id Int
+  ip      String
+
+  salesKanvasPlan SalesKanvasPlan @relation(fields: [sales_kanvas_plan_id], references: [id])
+  employee        Employee        @relation(fields: [employee_id], references: [id])
+
+  @@map("ts_sales_kanvas_personil")
+}
+
+model SalesKanvasKasbonMaterial {
+  id                      Int     @id @default(autoincrement())
+  sales_kanvas_plan_id    Int
+  kasbon_material_type_id Int
+  price                   Decimal @db.Decimal(12, 2)
+  qty                     Int
+
+  created_at DateTime  @default(now())
+  updated_at DateTime?
+
+  user_id Int
+  ip      String
+
+  salesKanvasPlan    SalesKanvasPlan          @relation(fields: [sales_kanvas_plan_id], references: [id])
+  kasbonMaterialType KanvasKasbonMaterialType @relation(fields: [kasbon_material_type_id], references: [id])
+
+  @@map("ts_sales_kanvas_kasbon_material")
+}
