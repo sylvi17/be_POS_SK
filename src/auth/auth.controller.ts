@@ -40,11 +40,13 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ResponseMessage(AUTH.TOKEN_REFRESHED)
   async refresh(@Body() dto: RefreshDto) {
-    const { accessToken, refreshToken } = await this.authService.refreshToken(
-      dto.refresh_token,
-    );
+    const { accessToken, refreshToken } =
+      await this.authService.refreshToken(dto.refresh_token);
 
-    return { access_token: accessToken, refresh_token: refreshToken };
+    return {
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    };
   }
 
   @Post("logout")
@@ -65,15 +67,23 @@ export class AuthController {
   }
 }
 
-/** Map objek user exclude sensitive data */
 function toSafeUser(user: AuthenticatedUser) {
-  const { password, refresh_token, role, ...safe } = user;
+  const {
+    password: _password,
+    refresh_token: _refreshToken,
+    role,
+    ...safeUser
+  } = user;
+
   return {
-    ...safe,
-    role: { id: role.id, name: role.name },
-    permissions: role.permissionRoles.map((pr) => ({
-      id: pr.permission.id,
-      name: pr.permission.name,
+    ...safeUser,
+    role: {
+      id: role.id,
+      name: role.name,
+    },
+    permissions: role.permissionRoles.map((permissionRole) => ({
+      id: permissionRole.permission.id,
+      name: permissionRole.permission.name,
     })),
   };
 }
